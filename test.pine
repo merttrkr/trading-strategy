@@ -27,41 +27,21 @@ startDate = input.time(timestamp("1 Jan 2024"), "Start Date", group="Backtest Ra
 endDate = input.time(timestamp("31 Dec 2025"), "End Date", group="Backtest Range")
 
 // =============================================================================
-// MODULE 2: DATA MANAGER
+// MODULE 2: DATA MANAGER & INDICATORS
 // =============================================================================
+// Define calculation function to ensure it runs on the correct timeframe
+calcIndicators() =>
+    dUpper = ta.highest(high, donchianLength)
+    dLower = ta.lowest(low, donchianLength)
+    atr = ta.atr(atrLength)
+    [dUpper, dLower, atr, close, high, low]
+
 // Get data from selected timeframe
-closePrice = tf == "" ? close : request.security(syminfo.tickerid, tf, close)
-highPrice = tf == "" ? high : request.security(syminfo.tickerid, tf, high)
-lowPrice = tf == "" ? low : request.security(syminfo.tickerid, tf, low)
-
-// =============================================================================
-// MODULE 3: INDICATOR CALCULATIONS
-// =============================================================================
-// Calculate Donchian Channels
-donchianUpper = ta.highest(highPrice, donchianLength)
-donchianLower = ta.lowest(lowPrice, donchianLength)
-
-// Calculate ATR
-atrValue = ta.atr(atrLength)
+[donchianUpper, donchianLower, atrValue, closePrice, highPrice, lowPrice] = request.security(syminfo.tickerid, tf, calcIndicators())
 
 // ATR Trailing Stop Variables (global variables)
 var float atrStopLevel = na
 var float highestSinceEntry = na
-
-// =============================================================================
-// MODULE 4: SIGNAL GENERATION
-// =============================================================================
-// Date Range Filter
-inDateRange = not useDateRange or (time >= startDate and time <= endDate)
-
-// Generate Entry Signal
-entryCondition = closePrice > donchianUpper[1]
-entrySignal = entryCondition and inDateRange
-
-// Generate Exit Signals
-exitOnDonchian = closePrice < donchianLower[1] and inDateRange
-exitOnATR = useATR and not na(atrStopLevel) and closePrice < atrStopLevel and inDateRange
-exitSignal = exitOnDonchian or exitOnATR
 
 // =============================================================================
 // MODULE 5: ATR STOP CALCULATION (Cannot be in function due to PineScript limitations)
@@ -81,6 +61,21 @@ else
         // Update trailing stop (only moves up)
         newStop = highestSinceEntry - (atrValue * atrMultiplier)
         atrStopLevel := math.max(atrStopLevel, newStop)
+
+// =============================================================================
+// MODULE 4: SIGNAL GENERATION
+// =============================================================================
+// Date Range Filter
+inDateRange = not useDateRange or (time >= startDate and time <= endDate)
+
+// Generate Entry Signal
+entryCondition = closePrice > donchianUpper[1]
+entrySignal = entryCondition and inDateRange
+
+// Generate Exit Signals
+exitOnDonchian = closePrice < donchianLower[1] and inDateRange
+exitOnATR = useATR and not na(atrStopLevel) and closePrice < atrStopLevel and inDateRange
+exitSignal = exitOnDonchian or exitOnATR
 
 // =============================================================================
 // MODULE 6: STRATEGY EXECUTION
