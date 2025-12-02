@@ -1,0 +1,152 @@
+//@version=5
+strategy("Donchian Breakout + ATR Exit (Modular)", 
+     overlay = true,
+     initial_capital = 10000,
+     default_qty_type = strategy.percent_of_equity,
+     default_qty_value = 25,
+     pyramiding = 0)
+
+// =============================================================================
+// MODULE 1: CONFIGURATION
+// =============================================================================
+// Donchian Settings
+donchianLength = input.int(20, "Donchian Length", minval=2)
+
+// ATR Settings
+useATR = input.bool(true, "Use ATR Trailing Stop", group="ATR Settings")
+atrLength = input.int(14, "ATR Length", group="ATR Settings")
+atrMultiplier = input.float(2.0, "ATR Multiplier", step=0.1, group="ATR Settings")
+
+// Timeframe Settings
+tf = input.timeframe("", "Signal Timeframe", 
+     tooltip="Leave blank for current chart, use 'D' for daily, '4H' for 4-hour")
+
+// Date Range Settings
+useDateRange = input.bool(true, "Use Date Range", group="Backtest Range")
+startDate = input.time(timestamp("1 Jan 2024"), "Start Date", group="Backtest Range")
+endDate = input.time(timestamp("31 Dec 2025"), "End Date", group="Backtest Range")
+
+// =============================================================================
+// MODULE 2: DATA MANAGER
+// =============================================================================
+// Get data from selected timeframe
+closePrice = tf == "" ? close : request.security(syminfo.tickerid, tf, close)
+highPrice = tf == "" ? high : request.security(syminfo.tickerid, tf, high)
+lowPrice = tf == "" ? low : request.security(syminfo.tickerid, tf, low)
+
+// =============================================================================
+// MODULE 3: INDICATOR CALCULATIONS
+// =============================================================================
+// Calculate Donchian Channels
+donchianUpper = ta.highest(highPrice, donchianLength)
+donchianLower = ta.lowest(lowPrice, donchianLength)
+
+// Calculate ATR
+atrValue = ta.atr(atrLength)
+
+// ATR Trailing Stop Variables (global variables)
+var float atrStopLevel = na
+var float highestSinceEntry = na
+
+// =============================================================================
+// MODULE 4: SIGNAL GENERATION
+// =============================================================================
+// Date Range Filter
+inDateRange = not useDateRange or (time >= startDate and time <= endDate)
+
+// Generate Entry Signal
+entryCondition = closePrice > donchianUpper[1]
+entrySignal = entryCondition and inDateRange
+
+// Generate Exit Signals
+exitOnDonchian = closePrice < donchianLower[1] and inDateRange
+exitOnATR = useATR and not na(atrStopLevel) and closePrice < atrStopLevel and inDateRange
+exitSignal = exitOnDonchian or exitOnATR
+
+// =============================================================================
+// MODULE 5: ATR STOP CALCULATION (Cannot be in function due to PineScript limitations)
+// =============================================================================
+// Reset ATR stop when not in position
+if strategy.position_size == 0
+    atrStopLevel := na
+    highestSinceEntry := na
+else
+    // Initialize on entry
+    if na(highestSinceEntry)
+        highestSinceEntry := highPrice
+        atrStopLevel := lowPrice - (atrValue * atrMultiplier)
+    else
+        // Update highest high
+        highestSinceEntry := math.max(highestSinceEntry, highPrice)
+        // Update trailing stop (only moves up)
+        newStop = highestSinceEntry - (atrValue * atrMultiplier)
+        atrStopLevel := math.max(atrStopLevel, newStop)
+
+// =============================================================================
+// MODULE 6: STRATEGY EXECUTION
+// =============================================================================
+// Entry Logic
+if barstate.isconfirmed and entrySignal and strategy.position_size == 0
+    strategy.entry("Long", strategy.long)
+    // Initialize ATR stop immediately after entry
+    highestSinceEntry := highPrice
+    atrStopLevel := lowPrice - (atrValue * atrMultiplier)
+
+// Exit Logic
+if barstate.isconfirmed and exitSignal and strategy.position_size > 0
+    strategy.close("Long")
+
+// Force exit at end of date range
+if barstate.isconfirmed and useDateRange and time > endDate and strategy.position_size != 0
+    strategy.close_all("End of Date Range")
+
+// =============================================================================
+// MODULE 7: VISUALIZATION
+// =============================================================================
+// Plot Donchian Channels
+plot(donchianUpper, "Donchian Upper", color=color.new(#2196F3, 0), linewidth=2)
+plot(donchianLower, "Donchian Lower", color=color.new(#FF9800, 0), linewidth=2)
+
+// Plot ATR Stop
+plot(atrStopLevel, "ATR Stop", color=color.new(#F44336, 0), style=plot.style_linebr, linewidth=2)
+
+// Plot Entry Signals
+plotshape(entrySignal and strategy.position_size == 0, "Entry Signal",
+     shape.triangleup, location.belowbar, 
+     color=color.new(#4CAF50, 0), size=size.small)
+
+// Plot Exit Signals  
+plotshape(exitSignal and strategy.position_size > 0, "Exit Signal",
+     shape.triangledown, location.abovebar, 
+     color=color.new(#F44336, 0), size=size.small)
+
+// Background for Date Range
+bgcolor(not inDateRange ? color.new(#9E9E9E, 90) : na, 
+     title="Outside Date Range")
+
+// =============================================================================
+// MODULE 8: EXTENSION PATTERNS
+// =============================================================================
+// How to add a new indicator (Example: RSI filter):
+// 1. Add configuration at top:
+//    useRSI = input.bool(false, "Use RSI Filter", group="RSI Settings")
+//    rsiLength = input.int(14, "RSI Length", group="RSI Settings")
+//    rsiOversold = input.int(30, "RSI Oversold", group="RSI Settings")
+//
+// 2. Calculate indicator here:
+//    rsiValue = ta.rsi(closePrice, rsiLength)
+//
+// 3. Modify entry signal:
+//    entrySignal = entryCondition and inDateRange and (not useRSI or rsiValue < rsiOversold)
+
+// How to add a new exit condition (Example: Moving Average):
+// 1. Add configuration at top:
+//    useMAExit = input.bool(false, "Use MA Exit", group="MA Settings")
+//    maLength = input.int(50, "MA Length", group="MA Settings")
+//
+// 2. Calculate indicator here:
+//    maValue = ta.sma(closePrice, maLength)
+//
+// 3. Add to exit signals:
+//    exitOnMA = useMAExit and closePrice < maValue and inDateRange
+//    exitSignal = exitOnDonchian or exitOnATR or exitOnMA
