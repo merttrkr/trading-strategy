@@ -1,9 +1,16 @@
-from typing import Dict, Type, Callable
+from typing import Dict, Type, Callable, TypeVar
+from core.abstractions import Indicator, Visualizer
 
-_INDICATOR_REGISTRY: Dict[str, Type] = {}
-_VISUALIZER_REGISTRY: Dict[str, Type] = {}
+# Type variables bound to our abstract base classes so registries return
+# concrete subclasses of the correct type.
+TIndicator = TypeVar('TIndicator', bound=Indicator)
+TVisualizer = TypeVar('TVisualizer', bound=Visualizer)
 
-def register_indicator(name: str) -> Callable[[Type], Type]:
+_INDICATOR_REGISTRY: Dict[str, Type[Indicator]] = {}
+_VISUALIZER_REGISTRY: Dict[str, Type[Visualizer]] = {}
+
+
+def register_indicator(name: str) -> Callable[[Type[TIndicator]], Type[TIndicator]]:
     """Decorator to register an indicator class.
 
     Args:
@@ -12,12 +19,12 @@ def register_indicator(name: str) -> Callable[[Type], Type]:
     Returns:
         Callable: The decorator function.
     """
-    def decorator(cls: Type) -> Type:
+    def decorator(cls: Type[TIndicator]) -> Type[TIndicator]:
         _INDICATOR_REGISTRY[name] = cls
         return cls
     return decorator
 
-def register_visualizer(name: str) -> Callable[[Type], Type]:
+def register_visualizer(name: str) -> Callable[[Type[TVisualizer]], Type[TVisualizer]]:
     """Decorator to register a visualizer class.
 
     Args:
@@ -26,12 +33,12 @@ def register_visualizer(name: str) -> Callable[[Type], Type]:
     Returns:
         Callable: The decorator function.
     """
-    def decorator(cls: Type) -> Type:
+    def decorator(cls: Type[TVisualizer]) -> Type[TVisualizer]:
         _VISUALIZER_REGISTRY[name] = cls
         return cls
     return decorator
 
-def get_indicator_class(name: str) -> Type:
+def get_indicator_class(name: str) -> Type[Indicator]:
     """Retrieves an indicator class by name.
 
     Args:
@@ -47,7 +54,7 @@ def get_indicator_class(name: str) -> Type:
         raise KeyError(f"Indicator '{name}' not found in registry.")
     return _INDICATOR_REGISTRY[name]
 
-def get_visualizer_class(name: str) -> Type:
+def get_visualizer_class(name: str) -> Type[Visualizer]:
     """Retrieves a visualizer class by name.
 
     Args:

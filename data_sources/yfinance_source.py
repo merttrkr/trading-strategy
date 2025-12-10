@@ -1,7 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, cast
 from core.abstractions import DataSource
 from core.models import DataFetchConfig
 from core.exceptions import DataFetchError
@@ -36,13 +36,15 @@ class YFinanceDataSource(DataSource):
             if not end_date:
                 end_date = datetime.now().strftime('%Y-%m-%d')
 
-            df = yf.download(
+            # yfinance' download may return a DataFrame or None; cast to help
+            # static checkers understand the expected type.
+            df = cast(Optional[pd.DataFrame], yf.download(
                 config.ticker,
                 start=start_date,
                 end=end_date,
                 interval=config.interval,
                 progress=False
-            )
+            ))
 
             if df is None or df.empty:
                 raise DataFetchError(f"No data found for {config.ticker}")

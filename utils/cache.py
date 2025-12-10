@@ -3,7 +3,10 @@ import pickle
 import time
 import functools
 import hashlib
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypeVar
+
+# Generic return type for the cached decorator
+T = TypeVar("T")
 
 class TTLCache:
     """Time-To-Live (TTL) Cache implementation using file storage."""
@@ -59,16 +62,16 @@ class TTLCache:
         with open(path, "wb") as f:
             pickle.dump(value, f)
 
-def cached(ttl_seconds: int = 3600, cache_dir: str = ".cache"):
+def cached(ttl_seconds: int = 3600, cache_dir: str = ".cache") -> Callable[[Callable[..., T]], Callable[..., T]]:
     """Decorator to cache function results.
 
     Args:
         ttl_seconds: Time to live in seconds.
         cache_dir: Directory to store cache files.
     """
-    def decorator(func: Callable):
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             # Check for skip cache flag
             if kwargs.pop('_skip_cache', False):
                 return func(*args, **kwargs)
@@ -82,10 +85,10 @@ def cached(ttl_seconds: int = 3600, cache_dir: str = ".cache"):
             key = hashlib.md5(key_string.encode('utf-8')).hexdigest()
 
             cache = TTLCache(cache_dir, ttl_seconds)
-            result = cache.get(key)
+            cached_result = cache.get(key)
 
-            if result is not None:
-                return result
+            if cached_result is not None:
+                return cached_result  # type: ignore[return-value]
 
             result = func(*args, **kwargs)
             cache.set(key, result)
