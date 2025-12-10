@@ -1,0 +1,24 @@
+data_source:
+  type: "yfinance"
+  ticker: "AAPL"
+  interval: "1d"
+  start_date: "2024-01-01"
+  end_date: null
+
+indicators:
+  - name: "SMA"
+    period: 20
+  - name: "RSI"
+    period: 14
+
+visualizer:
+  name: "matplotlib"
+  output_path: "results/outputs/chart.png"
+
+logging:
+  level: "INFO"
+  file: "results/trading_engine.log"
+
+cache:
+  enabled: true
+  ttl_seconds: 3600
