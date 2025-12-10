@@ -12,6 +12,14 @@ logger = setup_logger(__name__)
 class MatplotlibVisualizer(Visualizer):
     """Visualizer using mplfinance."""
 
+    def __init__(self, **kwargs):
+        """Initializes the visualizer.
+
+        Args:
+            **kwargs: Configuration parameters.
+        """
+        self.config = kwargs
+
     def render(self, df: pd.DataFrame, indicators: Dict[str, pd.Series], output_path: str) -> None:
         """Renders the analysis results to a file using mplfinance.
 

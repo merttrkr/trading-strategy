@@ -2,7 +2,7 @@ data_source:
   type: "yfinance"
   ticker: "AAPL"
   interval: "1d"
-  start_date: "2024-01-01"
+  start_date: "2025-10-01"
   end_date: null
 
 indicators:

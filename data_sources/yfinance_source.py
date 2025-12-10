@@ -44,7 +44,7 @@ class YFinanceDataSource(DataSource):
                 progress=False
             )
 
-            if df.empty:
+            if df is None or df.empty:
                 raise DataFetchError(f"No data found for {config.ticker}")
 
             # Ensure columns exist and are properly named
@@ -62,7 +62,7 @@ class YFinanceDataSource(DataSource):
             df = df[required_cols]
             
             # Ensure index is timezone-naive DatetimeIndex
-            if df.index.tz is not None:
+            if isinstance(df.index, pd.DatetimeIndex) and df.index.tz is not None:
                 df.index = df.index.tz_localize(None)
             
             logger.info(f"Successfully fetched {len(df)} rows for {config.ticker}")

@@ -3,7 +3,7 @@ from core.abstractions import DataSource, Indicator, Visualizer
 from core.models import DataFetchConfig
 from core.exceptions import FactoryError, ConfigurationError
 from utils.decorators import get_indicator_class, get_visualizer_class
-from data_sources.yfinance_source import YFinanceSource
+from data_sources.yfinance_source import YFinanceDataSource
 from data_sources.csv_source import CSVDataSource
 
 class ComponentFactory:
@@ -68,7 +68,7 @@ class ComponentFactory:
         # In Phase 1, we don't have concrete implementations yet.
         # This will be expanded in Phase 2.
         if source_type == 'yfinance':
-             return YFinanceSource()
+             return YFinanceDataSource()
         elif source_type == 'csv':
              return CSVDataSource()
         else:
