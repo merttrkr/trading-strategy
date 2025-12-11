@@ -1,8 +1,8 @@
-from typing import Dict, Any, List
-from core.abstractions import DataSource, Indicator, Visualizer
+from typing import Dict, Any, List, Optional
+from core.abstractions import DataSource, Indicator, Visualizer, Strategy
 from core.models import DataFetchConfig
 from core.exceptions import FactoryError, ConfigurationError
-from utils.decorators import get_indicator_class, get_visualizer_class
+from utils.decorators import get_indicator_class, get_visualizer_class, get_strategy_class
 from data_sources.yfinance_source import YFinanceDataSource
 from data_sources.csv_source import CSVDataSource
 
@@ -98,10 +98,34 @@ class ComponentFactory:
                 indicators.append(ind_cls(**params))
             except KeyError:
                 raise FactoryError(f"Indicator '{name}' is not registered.")
-            except Exception as e:
-                raise FactoryError(f"Failed to create indicator '{name}': {str(e)}")
-                
+        
         return indicators
+
+    def create_strategy(self) -> Optional[Strategy]:
+        """Creates the strategy instance.
+
+        Returns:
+            Optional[Strategy]: The strategy instance or None if not configured.
+
+        Raises:
+            FactoryError: If the strategy cannot be created.
+            ConfigurationError: If strategy name is missing.
+        """
+        strat_config = self.config.get('strategy')
+        if not strat_config:
+            return None
+            
+        name = strat_config.get('name')
+        if not name:
+            raise ConfigurationError("Strategy configuration missing 'name'.")
+            
+        try:
+            strat_cls = get_strategy_class(name)
+            params = {k: v for k, v in strat_config.items() if k != 'name'}
+            return strat_cls(**params)
+        except KeyError:
+            raise FactoryError(f"Strategy '{name}' is not registered.")
+
 
     def create_visualizer(self) -> Visualizer:
         """Creates the visualizer instance.

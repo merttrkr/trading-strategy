@@ -1,5 +1,5 @@
-from typing import List
-from core.abstractions import DataSource, Indicator, Visualizer
+from typing import List, Optional
+from core.abstractions import DataSource, Indicator, Visualizer, Strategy
 from core.models import DataFetchConfig, AnalysisResult
 from core.exceptions import TradingEngineError, DataFetchError, IndicatorCalculationError, VisualizationError
 from utils.logging import setup_logger
@@ -7,17 +7,19 @@ from utils.logging import setup_logger
 class TradingEngine:
     """Orchestrates the trading analysis pipeline."""
 
-    def __init__(self, data_source: DataSource, indicators: List[Indicator], visualizer: Visualizer):
+    def __init__(self, data_source: DataSource, indicators: List[Indicator], visualizer: Visualizer, strategy: Optional[Strategy] = None):
         """Initializes the trading engine with dependencies.
 
         Args:
             data_source: The data source component.
             indicators: A list of indicator components.
             visualizer: The visualizer component.
+            strategy: The strategy component (optional).
         """
         self.data_source = data_source
         self.indicators = indicators
         self.visualizer = visualizer
+        self.strategy = strategy
         self.logger = setup_logger(__name__)
 
     def run(self, config: DataFetchConfig, output_path: str) -> AnalysisResult:
@@ -55,10 +57,21 @@ class TradingEngine:
                     self.logger.error(f"Error calculating {indicator.name}: {e}")
                     raise IndicatorCalculationError(f"Failed to calculate {indicator.name}: {e}") from e
 
-            # 3. Render Visualization
+            # 3. Generate Signals
+            signals = []
+            if self.strategy:
+                self.logger.info(f"Executing strategy {self.strategy.name}...")
+                try:
+                    signals = self.strategy.generate_signals(df, indicator_results)
+                    self.logger.info(f"Generated {len(signals)} signals.")
+                except Exception as e:
+                    self.logger.error(f"Error executing strategy: {e}")
+                    raise TradingEngineError(f"Failed to execute strategy: {e}") from e
+
+            # 4. Render Visualization
             self.logger.info(f"Rendering visualization to {output_path}...")
             try:
-                self.visualizer.render(df, indicator_results, output_path)
+                self.visualizer.render(df, indicator_results, signals, output_path)
             except Exception as e:
                 self.logger.error(f"Error rendering visualization: {e}")
                 raise VisualizationError(f"Failed to render visualization: {e}") from e
@@ -68,6 +81,7 @@ class TradingEngine:
             return AnalysisResult(
                 data=df,
                 indicators=indicator_results,
+                signals=signals,
                 metadata={"ticker": config.ticker, "interval": config.interval}
             )
 

@@ -13,6 +13,7 @@ from utils.logging import setup_logger
 import data_sources
 import indicators
 import visualizers
+import strategies
 
 def load_config(config_path: str) -> Dict[str, Any]:
     """Loads configuration from a YAML file."""
@@ -69,9 +70,10 @@ def main():
         data_source = factory.create_data_source()
         indicators_list = factory.create_indicators()
         visualizer = factory.create_visualizer()
+        strategy = factory.create_strategy()
         
         # Create engine
-        engine = TradingEngine(data_source, indicators_list, visualizer)
+        engine = TradingEngine(data_source, indicators_list, visualizer, strategy)
         
         # Create fetch config
         fetch_config = factory.create_fetch_config()

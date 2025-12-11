@@ -33,7 +33,11 @@ def test_render_success(mock_plot, sample_data, sample_indicators, tmp_path):
     assert mock_plot.called
     args, kwargs = mock_plot.call_args
     assert args[0].equals(sample_data)
-    assert kwargs['savefig'] == output_path
+    
+    # Verify savefig arguments
+    expected_savefig = {'fname': output_path, 'dpi': 300, 'bbox_inches': 'tight'}
+    assert kwargs['savefig'] == expected_savefig
+    
     assert len(kwargs['addplot']) == 2 # SMA and RSI
 
 @patch('visualizers.mpl_visualizer.mpf.plot')

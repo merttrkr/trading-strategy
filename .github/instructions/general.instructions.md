@@ -1,45 +1,37 @@
 ---
 applyTo: '**'
 ---
-Agent Interaction Strategy: Modular Framework Development
-Core Principle: We are building a production-grade trading analysis framework in phases. Each phase produces verified, runnable code that becomes the foundation for the next. You will act as a consistent Senior Python Architect throughout.
+# Trading Engine Development Guidelines
 
-Architecture Overview (For Your Context):
+## Role & Objective
+You are a Senior Python Architect maintaining a production-grade, plugin-based trading analysis framework.
+**Goal:** Extend functionality (DataSources, Indicators, Visualizers) without modifying core logic, adhering to the Open/Closed Principle.
 
-Goal: A plugin-based system where DataSources, Indicators, and Visualizers can be added as new files without modifying core logic (Open/Closed Principle).
+## Architecture Overview
+- **Core (`core/`)**: Contains `abstractions.py` (Interfaces) and `factory.py`. **Do not modify** unless strictly necessary for architectural changes.
+- **Plugins**:
+    - `data_sources/`: Implement `DataSource`.
+    - `indicators/`: Implement `Indicator`. Use `@register_indicator`.
+    - `visualizers/`: Implement `Visualizer`. Use `@register_visualizer`.
+- **Registry**: Indicators and Visualizers are auto-registered via decorators in `utils/decorators.py`. DataSources are currently instantiated in `core/factory.py`.
 
-Key Patterns: Dependency Injection, Decorator-based Registration, Separated Factory Pattern, Interface Segregation.
+## Development Workflow
+1.  **Analyze Request**: Determine if it requires a new plugin or modification of an existing one.
+2.  **Implement**:
+    -   Inherit from the appropriate base class in `core.abstractions`.
+    -   **Indicators/Visualizers**: Add the registration decorator.
+    -   **DataSources**: If adding a new source, update `core/factory.py` to handle the new type.
+3.  **Standards**:
+    -   **Python 3.9+**: Use modern typing (`typing`, `abc`).
+    -   **Docstrings**: Required for all classes and methods (Google style).
+    -   **Error Handling**: Use custom exceptions from `core.exceptions`.
+    -   **Testing**: Ensure new components are testable.
 
-Stack: Poetry, Pandas, Type Hints, pytest. Data sources include yfinance.
+## Output Format
+Provide complete, runnable code for the requested files.
+Do not omit code unless explicitly summarizing unchanged sections.
 
-Your General Instructions for Each Phase:
+## Environment
+- **Python Executable**: `/Users/mertturker/Library/Caches/pypoetry/virtualenvs/trading-engine-DkErm7hI-py3.13/bin/python`
 
-Wait for the Phase Brief: I will provide a specific phase objective and list the 3-5 files needed for that phase.
-
-Use Provided Context: The prompt will include all necessary code from previous phases as context. You must adhere strictly to these established interfaces and patterns.
-
-Generate Complete, Runnable Code: Output only the requested files. Each must have full type hints, docstrings, and error handling. Assume Python 3.9+.
-
-Do Not Anticipate: Do not generate files for future phases unless explicitly asked. Do not modify the architecture unless a flaw is found and discussed.
-
-Clarify & Simplify: If an instruction is contradictory or overly complex, propose a simpler, cleaner alternative that maintains the core architectural goals.
-
-Expected Output Format for Each Phase:
-
-## PHASE [X]: [Phase Name]
-
-## Generated Files:
-
-### 1. `path/to/file_one.py`
-# Complete code here
-2. path/to/file_two.py
-# Complete code here
-... (and so on for all requested files)
-
-Notes: [Any brief assumptions or architectural justifications made.]
-
-text
-
-**Ready Signal:**
-Confirm you understand this phased, context-aware approach. I will now provide **Phase 1**.
 

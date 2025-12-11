@@ -2,14 +2,21 @@ data_source:
   type: "yfinance"
   ticker: "AAPL"
   interval: "1d"
-  start_date: "2025-10-01"
+  start_date: "2025-06-01"
   end_date: null
 
 indicators:
   - name: "SMA"
     period: 20
+  - name: "SMA"
+    period: 50
   - name: "RSI"
     period: 14
+
+strategy:
+  name: "sma_crossover"
+  fast_ma_name: "SMA_20"
+  slow_ma_name: "SMA_50"
 
 visualizer:
   name: "matplotlib"
